@@ -1,46 +1,23 @@
-# DB-PAISA: Discovery-Based Privacy-Agile IoT Sensing+Actuation
+# Artifact Appendix
 
-**DB-PAISA Paper (PETS'25) - [arXiv](https://arxiv.org/pdf/2412.11572)**
+Paper title: **DB-PAISA: Discovery-Based Privacy-Agile IoT Sensing+Actuation**
 
-Internet of Things (IoT) devices are becoming increasingly commonplace in both public and semi-private settings. Currently, most such devices lack mechanisms that allow for their discovery by casual (nearby) users who are not owners or operators. However, these users are potentially being sensed, and/or actuated upon, by these devices, without their knowledge or consent. This triggers privacy, security, and safety issues.
+Artifacts HotCRP Id: **#6**
 
-To address this problem, some recent work explored device transparency in the IoT ecosystem. The intuitive approach is for each device to periodically and securely broadcast (announce) its presence and capabilities to all nearby users. While effective, when no new users are present, this 𝑃𝑢𝑠ℎ-based approach generates a substantial amount of unnecessary network traffic and needlessly interferes with normal device operation.
+Requested Badge: **Availability/Functionality**
 
-In this work, we construct DB-PAISA which addresses these issues via a 𝑃𝑢𝑙𝑙-based method, whereby devices reveal their presence and capabilities only upon explicit user request. Each device guarantees a secure timely response (even if fully compromised by malware) based on a small active Root-of-Trust (RoT). DB-PAISA requires no hardware modifications and is suitable for a range of current IoT devices. To demonstrate its feasibility and practicality, we built a fully functional and publicly available prototype. It is implemented atop a commodity MCU (NXP LCP55S69) and operates in tandem with a smartphone-based app. Using this prototype, we evaluate energy consumption and other performance factors.
+## Description
+This is the code to fully implement DB-PAISA on IoT device (NXP/ESP board) and user device (Android phone).
+When a user device starts a scan, it broadcasts a request to learn all nearby IoT devices.
+Upon receiving the request, each IoT device generates an unforgeable message including its capability, and sends it to the user device.
+Then, the user device verifies the information and displays the details to the user.
 
+### Security/Privacy Issues and Ethical Concerns
+As configured in the code, we leverage TrustZone-M on IoT device (NXP board).
+There are no security/privacy issues (e.g., containing malware samples) or ethical concerns.
 
-## DB-PAISA Directory Structure
-
-    DB-PAISA
-    ├── 1_IoTDev
-    │   ├── 1_NXPBoard
-    │   │   ├── freertos_blinky_ns
-    │   │   │   ├── drivers
-    │   │   │   ├── freertos
-    │   │   │   ├── nsc_functions
-    │   │   │   ├── source
-    │   │   │   └── startup
-    │   │   └── freertos_blinky_s
-    │   │       ├── include
-    │   │       ├── drivers
-    │   │       ├── mbedtls
-    │   │       ├── nsc_functions
-    │   │       ├── source
-    │   │       └── startup
-    │   └── 2_ESP32-C3
-    │       └── main
-    └── 2_AndroidPhone/
-        └── app
-            └── src
-                └── main
-                    ├── java
-                    │   └── com
-                    │       └── sprout
-                    │           └── db-paisa
-                    └── res
-                         └── layout
-
-## Hardware and Software Requirement
+## Basic Requirements
+DB-PAISA implementation requires some hardware and software tools.
 
 ### Hardware Requirements
 
@@ -108,7 +85,7 @@ Storage requirement is also small. Their binary size would exceed a few MB.
 ## Environment 
 
 ### Accessibility
-The source code is publicly availabe at UCI SPROUT github,
+The source code is publicly available at UCI SPROUT github,
 https://github.com/sprout-uci/DB-PAISA
 
 
