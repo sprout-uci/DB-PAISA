@@ -9,9 +9,6 @@ import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanFilter;
 import android.bluetooth.le.ScanSettings;
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.Intent;
 import android.content.pm.PackageManager;
 
 import android.bluetooth.BluetoothAdapter;
@@ -24,7 +21,6 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.os.Parcel;
 import android.os.ParcelUuid;
 import android.util.Base64;
 import android.util.Log;
@@ -32,11 +28,13 @@ import android.util.Log;
 
 import android.widget.Button;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+import androidx.recyclerview.widget.SimpleItemAnimator;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
@@ -66,14 +64,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.Dictionary;
+import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
-
+import com.sprout.db_paisa.DBPaisaScanResult;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -116,6 +113,13 @@ public class MainActivity extends AppCompatActivity {
     // Stops scanning after 10 seconds.
     private static final long SCAN_PERIOD = 10000;
 
+    // results
+    private ArrayList<DBPaisaScanResult> scanResults = new ArrayList<>();
+
+    protected MC_RecyclerViewAdapter adapter;
+
+    private HashSet<String> deviceIds = new HashSet<>();
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -154,11 +158,20 @@ public class MainActivity extends AppCompatActivity {
                         Manifest.permission.BLUETOOTH_ADMIN,
                 }, MY_REQUEST_CODE);
 
+
         this.scanLeDevice();
 
         this.buttonScan = (Button) this.findViewById(R.id.button_scan);
-        this.textViewScanResults = (TextView) this.findViewById(R.id.textView_scanResults);
+//        this.textViewScanResults = (TextView) this.findViewById(R.id.textView_scanResults);
         this.buttonScan.setOnClickListener(v -> askAndStartBluetoothRequest());
+
+
+        RecyclerView recyclerView = findViewById(R.id.recylerview);
+        ((SimpleItemAnimator) recyclerView.getItemAnimator()).setSupportsChangeAnimations(false);
+
+        adapter = new MC_RecyclerViewAdapter(this, scanResults);
+        recyclerView.setAdapter(adapter);
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
     }
 
     private ScanCallback callback = new ScanCallback() {
@@ -296,7 +309,7 @@ public class MainActivity extends AppCompatActivity {
     class DeviceProfile extends AsyncTask<String, Void, String>
     {
         private byte[] n_dev;
-//        private byte[] time_cur;
+        private int time_cur;
         private byte[] sig;
         private byte[] attest_result;
         private int time_attest;
@@ -316,6 +329,7 @@ public class MainActivity extends AppCompatActivity {
                 sig = Base64.decode(params[2], Base64.DEFAULT);
                 attest_result = Base64.decode(params[3], Base64.DEFAULT);
                 time_attest = Integer.parseInt(params[4]);
+                System.out.println(time_attest + "time attest int");
                 byteUrl = params[5].getBytes("UTF-8");
                 n_usr = Arrays.copyOfRange(params, 6, params.length);
 
@@ -362,6 +376,7 @@ public class MainActivity extends AppCompatActivity {
             String mfrCertString = dict.get("certificate_of_manufacturer");
             mfrCertString = mfrCertString.replaceAll("\\\\n", "\n");
             byte[] profileSigByte = Base64.decode(profileSig, Base64.DEFAULT);
+            boolean isManifestSignatureValid;
 
             try {
                 X509Certificate mfrCert = (X509Certificate) CertificateFactory.getInstance("X.509")
@@ -374,8 +389,8 @@ public class MainActivity extends AppCompatActivity {
                 Signature signatureVerifier = Signature.getInstance("SHA256withECDSA");
                 signatureVerifier.initVerify(signaturePublicKey);
                 signatureVerifier.update(profileSigBody);
-                boolean isSignatureValid = signatureVerifier.verify(profileSigByte);
-                sb.append("Manifest Verification: " + (isSignatureValid==true?"PASS":"FAIL") + "\n");
+                isManifestSignatureValid = signatureVerifier.verify(profileSigByte);
+                sb.append("Manifest Verification: " + (isManifestSignatureValid==true?"PASS":"FAIL") + "\n");
             } catch (CertificateException | InvalidKeySpecException | NoSuchAlgorithmException |
                      SignatureException | InvalidKeyException e) {
                 throw new RuntimeException(e);
@@ -385,15 +400,20 @@ public class MainActivity extends AppCompatActivity {
             String devCertString = dict.get("certificate_of_device");
             devCertString = devCertString.replaceAll("\\\\n", "\n");
 
+
 //            Date dateAttTs = new Date((long)ByteBuffer.wrap(time_attest).order(ByteOrder.LITTLE_ENDIAN).getInt()*1000); // convert epoch time to Date object
+//
 //            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
 //            String formattedAttTs = dateFormat.format(dateAttTs); // format date as string
+//            System.out.println(formattedAttTs + "time");
 //            Date dateTs = new Date((long)ByteBuffer.wrap(time_cur).order(ByteOrder.LITTLE_ENDIAN).getInt()*1000); // convert epoch time to Date object
 //            String formattedTs = dateFormat.format(dateTs); // format date as string
 
 
             // signature: [n_dev(32) || time_cur (4) from Dev || id_dev(4) || H(M_SRV_URL)(32) || attest_result(1) || time_attest(4)]
             X509Certificate devCert;
+            boolean isSignatureValid;
+            boolean attResultBool;
             try {
                 MessageDigest digest = MessageDigest.getInstance("SHA-256");
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -421,11 +441,11 @@ public class MainActivity extends AppCompatActivity {
                 Signature signatureVerifier = Signature.getInstance("SHA256withECDSA");
                 signatureVerifier.initVerify(signaturePublicKey);
                 signatureVerifier.update(baos.toByteArray());
-                boolean isSignatureValid = !signatureVerifier.verify(sig);
-                boolean attResultBool = attest_result[0] == 0? true: false;
+                isSignatureValid = signatureVerifier.verify(sig);
+                attResultBool = attest_result[0] == 0? true: false;
 
                 sb.append("Announce Verification: " + (isSignatureValid==true?"PASS":"FAIL") + "\n");
-                sb.append("Attestation Result: " + (attResultBool==true?"PASS":"FAIL") + " \n\t\t\t\t\t Attested before " + time_attest/1000 + "." + time_attest%1000/100 + "sec \n\n");
+                sb.append("Attestation Result: " + (attResultBool==true?"PASS":"FAIL") + "+ \" \\n\\t\\t\\t\\t\\t Attested before " + time_attest/1000 + "." + time_attest%1000/100 + "sec \n\n");
                 sb.append("ID: " + dict.get("device_id")+"\n");
                 sb.append("Type: " + dict.get("device_type")+"\n");
                 sb.append("Manufacturer: " + dict.get("manufacturer")+"\n");
@@ -434,18 +454,35 @@ public class MainActivity extends AppCompatActivity {
                 sb.append("Actuators: " + dict.get("actuators")+"\n");
                 sb.append("Network: " + dict.get("network")+"\n");
                 sb.append("Description: " + dict.get("description")+"\n");
+
+//                System.out.println(sb.toString() + "printing sb");
             } catch (CertificateException | InvalidKeySpecException | NoSuchAlgorithmException |
                     SignatureException | InvalidKeyException e) {
                 throw new RuntimeException(e);
             }
 
-            textViewScanResults.setText(sb.toString());
-//            execute_bit = false;
+            if (deviceIds.add(dict.get("device_id"))) {
+                DBPaisaScanResult scanResult = new DBPaisaScanResult(
+                        isManifestSignatureValid,
+                        isSignatureValid,
+                        attResultBool, time_attest/1000 + "." + time_attest%1000/100,
+                        dict.get("device_id"), dict.get("device_type"), dict.get("manufacturer"),
+                        dict.get("device_status"),
+                        dict.get("sensors"),
+                        dict.get("actuators"),
+                        dict.get("network"),
+                        dict.get("description"));
+
+                // add new result to the end of the arraylist
+                int insertIndex = scanResults.size();
+                scanResults.add(insertIndex, scanResult);
+                adapter.notifyItemInserted(insertIndex);
+            }
         }
     }
 
     private void showPacketDetails(byte[] scanRecord) {
-        this.textViewScanResults.setText("");
+//        this.textViewScanResults.setText("");
         byte[] msg = {0};
 
         msg = Arrays.copyOfRange(scanRecord, 6, scanRecord.length);

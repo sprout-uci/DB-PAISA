@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">DB-PAISA</string>
+    <string name="button_text">Scan Devices</string>
+    <string name="lorem">thermostat</string>
 </resources>

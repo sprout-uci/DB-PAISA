@@ -290,6 +290,7 @@ static void prvThermalTask(void *pvParameters)
 		 float t = 0.0f;
 		 LPADC_DoSoftwareTrigger(DEMO_LPADC_BASE, 1U); /* 1U is trigger0 mask. */
 		 t = DEMO_MeasureTemperature(DEMO_LPADC_BASE, DEMO_LPADC_USER_CMDID, 0U);
+		 PRINTF("Current temperature: %d.%d\r\n", (int)(t*10000)/10000, (int)(t*10000) % 10000);
 
 			 /* Call the secure side function to send the packet to server. */
 #ifdef PERFORMANCE_EVALUATION

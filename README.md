@@ -88,7 +88,7 @@ For more details about how to use IDE, please refer to [MCUXpresso IDE User Guid
 
 #### ESP Board Software Requirements
 The details about ESP board is described [here](https://docs.espressif.com/projects/esp-idf/en/latest/esp32c3/hw-reference/esp32c3/user-guide-devkitc-02.html).
-- IDE: [VSCode Extension for ESP32](https://github.com/espressif/vscode-esp-idf-extension/blob/master/docs/tutorial/install.mdhttps://docs.espressif.com/projects/esp-idf/en/latest/esp32c3/get-started/index.html#get-started-step-by-step), v1.6.1
+- IDE: [VSCode Extension for ESP32](https://docs.espressif.com/projects/vscode-esp-idf-extension/en/latest/installation.html), v1.6.1
 
 
 #### Android Phone Software Requirements
